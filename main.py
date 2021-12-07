@@ -1,5 +1,7 @@
 '''
- @Author:	Kai Song, ks838 _at_ cam.ac.uk
+ @Author:	Adapted from code of Kai Song, ks838 _at_ cam.ac.uk
+
+Chenghao Zhang : cz38 _at_ illinois.edu
 
  @Notes :   1. In this edition, we sample from the normal modes 
  			   space directly, without using the coordinate 
@@ -10,143 +12,102 @@
 '''
 from __future__ import print_function
 
+import os
 import numpy as np 
 import matplotlib.pyplot as plt 
+import matplotlib.gridspec as gridspec
+import matplotlib
 
+from initialize_distribution import initialize_dist
+from Evolve_system import Evolve_system_evaluate_P
 from consts_rpmd import *
-from init_condations import *
-from potential import *
-from matrix_rpmd import *
+
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+num_proc= comm.Get_size()
 
 print(__doc__)
-# --------------- set the correlation functions :A & B ------------------
-'''
- The time correlation functions (TCF) <A(0)B(t)> is a most 
- common/important quantity in quantum dynamics. 
- Presently, the TCF is: <q(0)q(t)>
- You could try, let's say, <q^2(0)q^2(t)>. This is very hard for RMPD 
- to get good results as compared to numerically exact methods, such
- as HEOM.
-'''
-def A(q):
-	#return q*q
-	return q
-def B(q):
-	#return	q*q
-	return q
 	
 
 # =========================================================================
 #                  --------- EOM_Symplectic --------
 # =========================================================================
-if __name__ == '__main__':
-	fout1 = open('qq.dat','w')	
+def main():
+	matplotlib.rcParams.update({'font.size': 20})
+	file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/"
 
-	V_pot = Potential()
-	M_rpmd = Matrix_RPMD()
+	# electronic state to initialize
+	electronic_state_init = 0
+	# electronic state to compute P(t)
+	electronic_state_eval = 0
 
-	# for transformation to normal mode.
-	C_matrix = M_rpmd.trans_matrix()
+	n_samplings_per_core = int(n_samplings / num_proc)
+	print_num = int(nsteps_dynamics / nsteps_print)
 
-	# for thermostating
-	C_1, C_2 = M_rpmd.C_1_2()	
+	Pjj_list = []
+	for i_sample in range(n_samplings_per_core):
+		q_init, p_init, Q_init, P_init = initialize_dist(electronic_state_init)
+		Pjj = Evolve_system_evaluate_P(q_init,p_init, Q_init, P_init, electronic_state_eval)
+		Pjj_list.append(Pjj)
 
-	# 2nd index: index0 : momentum.  index1: coordinate.
-	phase_point = np.zeros((n_beads,2))
-	qq_correlation = np.zeros(nsteps_dynamics)	
+	# shape : [n_sampling_per_core , print_num]
+	Pjj_list = np.array(Pjj_list)
 
-	for i_sampling in range(n_samplings):
-	#  We first do thermalization to sample initial state ergodically. Then we simulate correlation function <AB(t)> without thermalstat (as with thermalstat, no real time info could be extracted.).
-	# ****************************************************************
-	#         		   	Step 1:  thermalization 
-	# ****************************************************************	
-		# 1.1 initialize forces, from q_, by V_pot.V_pot.set_force(q_)
-		p_ = np.zeros(n_beads)
-		q_ = np.zeros(n_beads)
-		for i_bead in range(n_beads):
-			p_[i_bead] = p_gaussian()	
+	# broadcast and gather Pjj_list data
+	data_type = type(Pjj_list[0][0])
+	recv_Pjj = np.empty([num_proc, n_samplings_per_core, print_num] , dtype = data_type )
 
-		for istep in range(nsteps_equil):
-			# transform to nornal modes
-			phase_point[:,0] = np.dot(p_,C_matrix)
-	# ----------Ceriotti: Langevin step-----------
-			for i_bead in range(n_beads):
-				phase_point[i_bead,0] = C_1[i_bead]*phase_point[i_bead,0] + \
-									np.sqrt(mass/beta_N)*C_2[i_bead]*xi_gaussian()
-			# transform back to plain modes
-			p_ = np.dot(C_matrix, phase_point[:,0])	
-			p_ += -dt/2.0*V_pot.set_force(q_)
-			# transform to normal modes
-			phase_point[:,0] = np.dot(p_, C_matrix)
-			phase_point[:,1] = np.dot(q_, C_matrix)
-	# -------------Evolve normal modes------------
-			# eq.(23) in 2010 paper.
-			for i_bead in range(n_beads):
-				phase_point[i_bead][:] = np.dot(M_rpmd.evol_matrix(omegak[i_bead]),
-											phase_point[i_bead][:])
-	# tansform back to plain momenta and coordinates
-			p_ = np.dot(C_matrix,phase_point[:,0])
-			q_ = np.dot(C_matrix,phase_point[:,1])
-			p_ += -dt/2.0*V_pot.set_force(q_)
-	# ----------Ceriotti: Langevin step-----------
-			# transorm to normal modes, for PILET
-			phase_point[:,0] = np.dot(p_, C_matrix)
-			for i_bead in range(n_beads):
-				phase_point[i_bead,0] = C_1[i_bead]*phase_point[i_bead,0] + \
-									np.sqrt(mass/beta_N)*C_2[i_bead]*xi_gaussian()
-			p_ = np.dot(C_matrix, phase_point[:,0])		
+	comm.Gather(Pjj_list, recv_Pjj, 0)
+	if(rank == 0):
+		shape = recv_Pjj.shape
+		Pjj_list = np.reshape(recv_Pjj , (shape[0] * shape[1] , shape[2]) )
 
-	#		# -------------Andersen: collision------------
-	#		for i_bead in range(n_beads):
-	#			if np.random.uniform(0,1) <= dt* nu_poisson:
-	#				p_[i_bead] = p_gaussian() 
-	# --------------END OF THERMALIZATION---------------
-		A_N = 0.0
-		for i_bead in range(n_beads):
-			A_N += q_[i_bead]
-		A_N /= n_beads # A_N(0)
+		# average over sampling  shape : [ print_num ]
+		Pjj_list_avg = np.mean(Pjj_list, 0)
 
-	# **************************************************************************
-	# 				   Step 2:     extracting information
-	# **************************************************************************
-		# 2.1 initialize forces, from q_, by V_pot.set_force(q_)	
+		plot_Pjj_fig(Pjj_list_avg, file_path)
+		save_data(Pjj_list_avg, file_path)
 
-		# initial states for the EOMs
-		for istep in range(nsteps_dynamics):
-			p_ += -dt*0.5*V_pot.set_force(q_)
-	#		# transform to nornal modes
-			phase_point[:,0] = np.dot(p_, C_matrix)
-			phase_point[:,1] = np.dot(q_, C_matrix)
-	#-----------EVOLUTION with normal modes------------
-			for i_bead in range(n_beads):
-				#omegak = 2* omega_N * np.sin(i_bead*np.pi/n_beads)
-				phase_point[i_bead][:] = np.dot(M_rpmd.evol_matrix(omegak[i_bead]),
-											phase_point[i_bead][:])
-	# tansform back to plain momenta and coordinates
-			p_ = np.dot(C_matrix,phase_point[:,0])
-			q_ = np.dot(C_matrix,phase_point[:,1])
-			p_ += -dt/2.0*V_pot.set_force(q_)
+def plot_Pjj_fig(Pjj_list_avg , file_path):
+	# time to print
+	print_num = int(nsteps_dynamics / nsteps_print)
+	t_print = np.array(range(print_num)) * dt
 
-			B_N = 0.0
-			for i_bead in range(n_beads):
-				B_N += q_[i_bead]
-			B_N /= n_beads
+	# configure figure
+	fig = plt.figure(figsize=(20, 10))
+	spec = gridspec.GridSpec(nrows=1, ncols=1, figure=fig)
+	spec.update(hspace=0.5, wspace=0.3)
+	ax = fig.add_subplot(spec[0, 0])
 
-			qq_correlation[istep] += A_N*B_N #Z_tot is not needed
+	# plot result
+	ax.plot(t_print, Pjj_list_avg, linewidth = 3)
 
-	t_list =[0]*nsteps_dynamics
-	for istep in range(nsteps_dynamics):
-		t_list[istep] = dt*istep
-		fout1.write('%14.8f,%18.8f'%(dt*istep,qq_correlation[istep]/n_samplings))
-		fout1.write('\n')
-	fout1.close()	
+	# set title and label
+	ax.set_title("$P_{0}(t)$")
+	ax.set_ylabel("$P_{0}$(t)")
+	ax.set_xlabel('time')
 
-	plt.plot(t_list,qq_correlation/n_samplings,linewidth=1.0)
-	plt.title("TCF of q")
-	plt.xlabel("t (a.u.)")
-	plt.ylabel("<q(0)q(t)>")
-	plt.show()
+	fig_name = "survival_prob.png"
+	fig_name = os.path.join(file_path, fig_name)
+	fig.savefig(fig_name)
 
+def save_data(Pjj_list_avg , file_path):
+	# time to print
+	print_num = int(nsteps_dynamics / nsteps_print)
+	t_print = np.array(range(print_num)) * dt
 
+	file_name = "electron_state_prob.txt"
+	file_name = os.path.join(file_path, file_name)
 
+	with open(file_name , "w") as f:
+		for t_index in range(print_num):
+			f.write(str(t_print[t_index]) +" ")
+
+		f.write("\n")
+
+		for t_index in range(print_num):
+			f.write(str(Pjj_list_avg[t_index]) + " ")
+
+		f.write("\n")
 

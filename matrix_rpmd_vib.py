@@ -5,7 +5,7 @@
 import numpy as np 
 from consts_rpmd import *
 
-class Matrix_RPMD:
+class Matrix_RPMD_vib:
 	# transform to normal modes
 	#Refs:   Ceriotti et al. J. Chem. Phys. 133, 124104  2010
 	def trans_matrix(self):
@@ -22,9 +22,14 @@ class Matrix_RPMD:
 				else:
 					C_matrix[j_bead][k_bead] = np.sqrt(2/n_beads)*np.sin(2*np.pi*j_bead*k_bead/n_beads)
 		return C_matrix
-	# the classical evolution matrix (for normal modes)
+
+	# the classical evolution matrix for free ring polymer (for normal modes)
 	def evol_matrix(self,omegak):
+		# evolution matrix.
+		E_matrix = np.zeros((2, 2))
+
 		# dt is a global parameter, defined in consts_rpmd
+		# eq. (23) in Ceriotti et.al 2010
 		if omegak == 0:
 			E_matrix[0][0] = 1.0
 			E_matrix[0][1] = 0
@@ -45,6 +50,7 @@ class Matrix_RPMD:
 		gamma_vec = np.zeros(n_beads)
 		c_1 = np.zeros(n_beads)
 		c_2 = np.zeros(n_beads)
+		# eq. (36) , gamma_vec is friction coefficient for thermo-stating.
 		gamma_vec[0] = 1.0/tau0
 		for i_bead in range(1,n_beads):
 			gamma_vec[i_bead] = 2*omegak[i_bead]
@@ -52,3 +58,4 @@ class Matrix_RPMD:
 			c_1[i_bead] = np.exp(-dt/2*gamma_vec[i_bead])
 			c_2[i_bead] = np.sqrt(1.0-c_1[i_bead]**2)
 		return c_1, c_2
+
