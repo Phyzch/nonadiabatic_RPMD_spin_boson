@@ -7,18 +7,23 @@ import numpy as np
 
 # parameters for the system
 #the inverse temperature 
-beta = 1.0 # a.u.
+beta = 16.0 # a.u.
 
 mass = 1.0
 
 # ------ params for propagation ------
-dt = 0.01 # time step
+dt = 2 * pow(10,-3) # time step
+
+equil_dt = pow(10,-2) # time step for thermalization of initial state
+equil_time = 10
 # steps for the equilibrating part
-nsteps_equil = 2000
+nsteps_equil = int(equil_time / equil_dt )
 
 # steps for the dynamics
-nsteps_dynamics = 1000
-nsteps_print = 10
+dynamics_time = 10
+nsteps_dynamics = int(dynamics_time / dt )
+print_time = 0.1
+nsteps_print = int(print_time / dt )
 
 # --------- for electronic state --------
 n_electronic_state = 2
@@ -43,7 +48,7 @@ tau0 = 0.7 # an input parameter for tuning the efficiency
 # The number of samplings (from the thermostatting).
 # Typically, we need ~10^4 to get converged results.
 # We started using a small number for testing
-n_samplings = 1000
+n_samplings = 100
 
 # sampling initial momentum and coordinate.
 mu_p = 0.0

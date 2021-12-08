@@ -1,6 +1,6 @@
 import numpy as np
 from consts_rpmd import *
-from potential import sys_Potential
+from potential import sys_Potential , electronic_state_related_Potential
 from matrix_rpmd_vib import Matrix_RPMD_vib
 
 
@@ -21,20 +21,31 @@ def Evaluation_electronic_population(q,p, electronic_state):
 
     return P
 
-def Evolve_interaction_part(q_,p_,Q_,P_ , V_sys):
+def Evolve_interaction_part_qp(q_, p_, Q_, P_, V_sys, V_nuclear):
     # evolve interaction part (exclude free ring polymer Hamiltonian)
+    # make sure it's symplectic
+    # split operator into two part. Do P first, then q_, p_.  q_ , p_ has to be symplectic too.
     for bead_index in range(n_beads):
+        p_rate = V_sys.set_electronic_momentum_rate(q_[bead_index], p_[bead_index], Q_[bead_index], P_[bead_index],
+                                                    V_nuclear)
         # size [n_electronic_state]
-        q_rate = V_sys.set_electronic_coordinate_rate(q_[bead_index], p_[bead_index], Q_[bead_index], P_[bead_index])
-        p_rate = V_sys.set_electronic_momentum_rate(q_[bead_index], p_[bead_index], Q_[bead_index], P_[bead_index])
-        P_rate = V_sys.set_nuclear_interaction_part_Force(q_[bead_index], p_[bead_index], Q_[bead_index],
-                                                          P_[bead_index])
-
-        q_[bead_index] = q_[bead_index] + dt / 2 * q_rate
         p_[bead_index] = p_[bead_index] + dt / 2 * p_rate
+
+        q_rate = V_sys.set_electronic_coordinate_rate(q_[bead_index], p_[bead_index], Q_[bead_index], P_[bead_index],
+                                                      V_nuclear)
+        # size [n_electronic_state]
+        q_[bead_index] = q_[bead_index] + dt / 2 * q_rate
+
+    return q_, p_
+
+def Evolve_interaction_part_P(q_,p_,Q_,P_, V_sys, V_nuclear):
+    for bead_index in range(n_beads):
+        P_rate = V_sys.set_nuclear_interaction_part_Force(q_[bead_index], p_[bead_index], Q_[bead_index],
+                                                          P_[bead_index], V_nuclear)
+
         P_[bead_index] = P_[bead_index] + dt / 2 * P_rate
 
-    return q_, p_ , Q_, P_
+    return P_
 
 
 def Evolve_system_evaluate_P(q_ , p_ , Q_ , P_ , electronic_state):
@@ -46,6 +57,7 @@ def Evolve_system_evaluate_P(q_ , p_ , Q_ , P_ , electronic_state):
     :return: Pjj: size: [nsteps_dynamics / nsteps_print]
     '''
     V_sys = sys_Potential()
+    V_nuclear = electronic_state_related_Potential()
     M_rpmd = Matrix_RPMD_vib()
     C_matrix = M_rpmd.trans_matrix()
 
@@ -55,9 +67,9 @@ def Evolve_system_evaluate_P(q_ , p_ , Q_ , P_ , electronic_state):
     Pjj_list = []
 
     for istep in range(nsteps_dynamics):
-        # -------- evolution for interaction part ---------------
-        q_, p_ , Q_, P_  = Evolve_interaction_part(q_, p_, Q_, P_, V_sys)
-
+        # -------- evolution for interaction part for q_,p_  (symplectic) ---------------
+        q_, p_  = Evolve_interaction_part_qp(q_, p_, Q_, P_, V_sys, V_nuclear)
+        P_ = Evolve_interaction_part_P(q_,p_,Q_,P_, V_sys, V_nuclear )
         # --------- evolve free ring polymer part -----------
         # transform to normal mode
         phase_point[:,0] = np.dot(P_ , C_matrix)
@@ -65,14 +77,15 @@ def Evolve_system_evaluate_P(q_ , p_ , Q_ , P_ , electronic_state):
         # -------------- Evolution with normal mode --------------
         # omegak = 2 omega_N sin( bead_index * pi / n_beads)
         for bead_index in range(n_beads):
-            phase_point[bead_index][:] = np.dot( M_rpmd.evol_matrix(omegak[bead_index]) , phase_point[bead_index][:] )
+            phase_point[bead_index][:] = np.dot( M_rpmd.evol_matrix(omegak[bead_index] , dt ) , phase_point[bead_index][:] )
 
         # transform back to plain momentum and coordinate
         P_ = np.dot(C_matrix, phase_point[:,0])
         Q_ = np.dot(C_matrix, phase_point[:,1])
 
         # ------ evolution for interaction part --------
-        q_, p_, Q_, P_ = Evolve_interaction_part(q_, p_, Q_, P_, V_sys)
+        P_ = Evolve_interaction_part_P(q_,p_,Q_,P_, V_sys, V_nuclear )
+        q_, p_ = Evolve_interaction_part_qp(q_, p_, Q_, P_, V_sys, V_nuclear)
 
         if(istep % nsteps_print == 0):
             Pjj = Evaluation_electronic_population(q_,p_, electronic_state)

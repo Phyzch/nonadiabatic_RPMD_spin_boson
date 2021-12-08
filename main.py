@@ -27,7 +27,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 num_proc= comm.Get_size()
 
-print(__doc__)
+# print(__doc__)
 	
 
 # =========================================================================
@@ -111,3 +111,4 @@ def save_data(Pjj_list_avg , file_path):
 
 		f.write("\n")
 
+main()

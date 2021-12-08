@@ -24,7 +24,8 @@ class Matrix_RPMD_vib:
 		return C_matrix
 
 	# the classical evolution matrix for free ring polymer (for normal modes)
-	def evol_matrix(self,omegak):
+	def evol_matrix(self,omegak , time_step ):
+		# time_step : dt for evolution
 		# evolution matrix.
 		E_matrix = np.zeros((2, 2))
 
@@ -33,13 +34,13 @@ class Matrix_RPMD_vib:
 		if omegak == 0:
 			E_matrix[0][0] = 1.0
 			E_matrix[0][1] = 0
-			E_matrix[1][0] = dt/mass
+			E_matrix[1][0] = time_step /mass
 			E_matrix[1][1] = 1.0
 		else:
-			E_matrix[0][0] = np.cos(omegak*dt)
-			E_matrix[0][1] = -mass*omegak*np.sin(omegak*dt)
-			E_matrix[1][0] = 1.0/(mass*omegak)*np.sin(omegak*dt)
-			E_matrix[1][1] = np.cos(omegak*dt)
+			E_matrix[0][0] = np.cos(omegak* time_step )
+			E_matrix[0][1] = -mass*omegak*np.sin(omegak* time_step )
+			E_matrix[1][0] = 1.0/(mass*omegak)*np.sin(omegak* time_step )
+			E_matrix[1][1] = np.cos(omegak* time_step )
 		return E_matrix	
 	
 	#------- thermostatting ------------
@@ -55,7 +56,7 @@ class Matrix_RPMD_vib:
 		for i_bead in range(1,n_beads):
 			gamma_vec[i_bead] = 2*omegak[i_bead]
 		for i_bead in range(n_beads):
-			c_1[i_bead] = np.exp(-dt/2*gamma_vec[i_bead])
+			c_1[i_bead] = np.exp(- equil_dt /2 * gamma_vec[i_bead])
 			c_2[i_bead] = np.sqrt(1.0-c_1[i_bead]**2)
 		return c_1, c_2
 

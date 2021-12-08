@@ -29,10 +29,10 @@ class nuclear_Potential:
 		V = 0
 		if(n==0 and m==0):
 			# Hamiltonian for electronic state 0
-			V = 1/2 * mass * np.power(omega,2) * np.power(Q + nuclear_Potential.R0 , 2)
+			V = 1/2 * mass * np.power(omega,2) * np.power(Q , 2) + F * Q
 		elif (n==1 and m==1):
 			# Hamiltonian for electronic state 1
-			V = 1/2 * mass * np.power(omega,2) * np.power(Q - nuclear_Potential.R0 , 2)
+			V = 1/2 * mass * np.power(omega,2) * np.power(Q  , 2) - F * Q
 		elif( (n==0 and m==1) or (n==1 and m==0) ):
 			V = Delta
 
@@ -74,7 +74,7 @@ class electronic_state_related_Potential:
 
 	def set_V0(self, Q):
 		# potential V0 common to all electronic state
-		V0 = mass / 2 * np.power(omega,2) * np.power(Q,2) + np.power(F,2)/(2 * mass * np.power(omega,2) )
+		V0 = mass / 2 * np.power(omega,2) * np.power(Q,2)
 		return V0
 
 	def set_F0(self,Q):
@@ -85,7 +85,7 @@ class electronic_state_related_Potential:
 class sys_Potential:
 	# potential of nuclear + electronic state
 
-	def set_electronic_momentum_rate(self , q, p, Q,P  ):
+	def set_electronic_momentum_rate(self , q, p, Q,P  , V_nuclear):
 		'''
 		see eq.18 in Chowdhury & Huo 2019
 		:param q , p: electronic coordinate and momentum. shape : [ n_electronic_state ]
@@ -94,7 +94,6 @@ class sys_Potential:
 		q,p,Q,R should be the same bead.
 		:return: dp/dt for electronic mapping momentum. size [n_electronic_state]
 		'''
-		V_nuclear = electronic_state_related_Potential()
 
 		momentum_rate = np.zeros(n_electronic_state)
 		for n in range(n_electronic_state):
@@ -106,7 +105,7 @@ class sys_Potential:
 
 		return momentum_rate
 
-	def set_electronic_coordinate_rate(self, q, p, Q, P):
+	def set_electronic_coordinate_rate(self, q, p, Q, P , V_nuclear):
 		'''
 		see eq.18 in Chowdhury & Huo 2019
 		:param q , p: electronic coordinate and momentum. shape : [ n_electronic_state ]
@@ -115,7 +114,6 @@ class sys_Potential:
 		q,p,Q,R should be the same bead.
 		:return: dq/dt for electronic mapping momentum. size [n_electronic_state]
 		'''
-		V_nuclear = electronic_state_related_Potential()
 
 		coordinate_rate = np.zeros(n_electronic_state)
 		for n in range(n_electronic_state):
@@ -127,7 +125,7 @@ class sys_Potential:
 
 		return coordinate_rate
 
-	def set_nuclear_interaction_part_Force(self , q, p, Q, P ):
+	def set_nuclear_interaction_part_Force(self , q, p, Q, P , V_nuclear ):
 		'''
 		See eq.(17) in Chowdhury & Huo 2019
 		Here, we do not take evolution of free ring polymer part into consideration. we split Liouville operator to e^{-\Delta t L_V/2} e^{- \Delta t * L_0} e^{-\Delta t L_V/2}
@@ -138,7 +136,6 @@ class sys_Potential:
 		q,p,Q,R should be the same bead.
 		:return:
 		'''
-		V_nuclear = electronic_state_related_Potential()
 
 		Force = 0
 		Force = Force + V_nuclear.set_F0(Q)
