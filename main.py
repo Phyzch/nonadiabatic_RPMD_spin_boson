@@ -133,8 +133,9 @@ def record_param(file_path):
 		f.write("zero mode  thermalization time scale " + str(tau0) + "\n")
 		f.write("-------- simulation param ---------- \n")
 		f.write("simulation dt : " + str(dt) + "\n")
-		f.write("sampling number: " + str(dynamics_time) + "\n")
+		f.write("sampling number: " + str(n_samplings) + "\n")
 		f.write("print time : " + str(print_time) + "\n")
+		f.write("simulation time " + str(dynamics_time) + "\n")
 		f.write("[F , omega , Delta ] : " + str(F) +" , " + str(omega) +" , "+ str(Delta) + "\n")
 
 
