@@ -23,6 +23,7 @@ from Evolve_system import Evolve_system_evaluate_P
 from consts_rpmd import *
 from potential import *
 from Quantum_simulation_module import solve_quantum_survival_probability
+from util import check_file_path_exist
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -46,6 +47,8 @@ def main():
 
 def RPMD_survival_prob():
 	file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/try/"
+
+	check_file_path_exist(file_path)
 
 	# record simulation parameter
 	record_param(file_path)

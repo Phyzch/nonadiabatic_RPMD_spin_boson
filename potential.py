@@ -5,7 +5,7 @@
 from consts_rpmd import *
 
 # F is displacement of harmonic oscillator : Fx
-F = 6
+F = 0.1
 # frequency of nuclear motion
 omega = 1
 # coupling between electronic state.

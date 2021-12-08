@@ -8,7 +8,7 @@ import matplotlib
 
 from consts_rpmd import beta
 from potential import F,omega,Delta
-
+from util import check_file_path_exist
 
 def shifted_harmonic_oscillator_in_one_electronic_state_eig(harmonic_basis_N, params , spin_state , neigs ):
     N = harmonic_basis_N
@@ -234,7 +234,12 @@ def save_param(file_path):
 def solve_quantum_survival_probability():
     # solve survival probability of density matrix by resolving eigenstate spectrum of quantum system
 
-    file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/QM_result/"
+    file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/F=0.1 omega=1 Delta=1/beta=5/"
+
+    check_file_path_exist(file_path)
+
+    save_param(file_path)
+
     # parameter
     param = [Delta, F, omega]
 
@@ -243,7 +248,7 @@ def solve_quantum_survival_probability():
 
     # neigs : number of eigenstate to solve
     neigs_nuclear = int( 2 * 1/beta * 1/omega * 2 )
-    neigs_nuclear = np.max( [neigs_nuclear, 100] )
+    neigs_nuclear = np.max( [neigs_nuclear, 50] )
 
     neigs = 2 * neigs_nuclear
 
