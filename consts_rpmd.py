@@ -7,7 +7,7 @@ import numpy as np
 
 # parameters for the system
 #the inverse temperature 
-beta = 16.0 # a.u.
+beta = 0.1 # a.u.
 
 mass = 1.0
 

@@ -21,6 +21,7 @@ import matplotlib
 from initialize_distribution import initialize_dist
 from Evolve_system import Evolve_system_evaluate_P
 from consts_rpmd import *
+from potential import *
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -35,7 +36,9 @@ num_proc= comm.Get_size()
 # =========================================================================
 def main():
 	matplotlib.rcParams.update({'font.size': 20})
-	file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/"
+	file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/try/"
+
+	record_param(file_path)
 
 	# electronic state to initialize
 	electronic_state_init = 0
@@ -72,7 +75,7 @@ def main():
 def plot_Pjj_fig(Pjj_list_avg , file_path):
 	# time to print
 	print_num = int(nsteps_dynamics / nsteps_print)
-	t_print = np.array(range(print_num)) * dt
+	t_print = np.array(range(print_num)) * print_time
 
 	# configure figure
 	fig = plt.figure(figsize=(20, 10))
@@ -95,7 +98,7 @@ def plot_Pjj_fig(Pjj_list_avg , file_path):
 def save_data(Pjj_list_avg , file_path):
 	# time to print
 	print_num = int(nsteps_dynamics / nsteps_print)
-	t_print = np.array(range(print_num)) * dt
+	t_print = np.array(range(print_num)) * print_time
 
 	file_name = "electron_state_prob.txt"
 	file_name = os.path.join(file_path, file_name)
@@ -110,5 +113,29 @@ def save_data(Pjj_list_avg , file_path):
 			f.write(str(Pjj_list_avg[t_index]) + " ")
 
 		f.write("\n")
+
+def record_param(file_path):
+	'''
+	record parameter for simulation
+	:return:
+	'''
+	param_file = "param.txt"
+	param_file = os.path.join(file_path, param_file)
+
+	with open(param_file , "w") as f:
+		f.write("beta: : " + str(beta) + "\n")
+		f.write("bead number:  " + str(n_beads) + "\n")
+		f.write("electronic state number:  " + str(n_electronic_state) + "\n")
+
+		f.write("---------- equilibrition param ----------- \n")
+		f.write("thermal equilibrium dt: " + str(equil_dt) + "\n")
+		f.write("thermal equilibrium time:  " + str(equil_time) + "\n")
+		f.write("zero mode  thermalization time scale " + str(tau0) + "\n")
+		f.write("-------- simulation param ---------- \n")
+		f.write("simulation dt : " + str(dt) + "\n")
+		f.write("sampling number: " + str(dynamics_time) + "\n")
+		f.write("print time : " + str(print_time) + "\n")
+		f.write("[F , omega , Delta ] : " + str(F) +" , " + str(omega) +" , "+ str(Delta) + "\n")
+
 
 main()
