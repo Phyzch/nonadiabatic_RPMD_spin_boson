@@ -22,6 +22,7 @@ from initialize_distribution import initialize_dist
 from Evolve_system import Evolve_system_evaluate_P
 from consts_rpmd import *
 from potential import *
+from Quantum_simulation_module import solve_quantum_survival_probability
 
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
@@ -36,8 +37,17 @@ num_proc= comm.Get_size()
 # =========================================================================
 def main():
 	matplotlib.rcParams.update({'font.size': 20})
+
+	# classical RPMD simulation:
+	# RPMD_survival_prob()
+
+	# quantum simulation :
+	solve_quantum_survival_probability()
+
+def RPMD_survival_prob():
 	file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/try/"
 
+	# record simulation parameter
 	record_param(file_path)
 
 	# electronic state to initialize
@@ -51,7 +61,7 @@ def main():
 	Pjj_list = []
 	for i_sample in range(n_samplings_per_core):
 		q_init, p_init, Q_init, P_init = initialize_dist(electronic_state_init)
-		Pjj = Evolve_system_evaluate_P(q_init,p_init, Q_init, P_init, electronic_state_eval)
+		Pjj = Evolve_system_evaluate_P(q_init, p_init, Q_init, P_init, electronic_state_eval)
 		Pjj_list.append(Pjj)
 
 	# shape : [n_sampling_per_core , print_num]
@@ -59,17 +69,20 @@ def main():
 
 	# broadcast and gather Pjj_list data
 	data_type = type(Pjj_list[0][0])
-	recv_Pjj = np.empty([num_proc, n_samplings_per_core, print_num] , dtype = data_type )
+	recv_Pjj = np.empty([num_proc, n_samplings_per_core, print_num], dtype=data_type)
 
 	comm.Gather(Pjj_list, recv_Pjj, 0)
-	if(rank == 0):
+	if (rank == 0):
 		shape = recv_Pjj.shape
-		Pjj_list = np.reshape(recv_Pjj , (shape[0] * shape[1] , shape[2]) )
+		Pjj_list = np.reshape(recv_Pjj, (shape[0] * shape[1], shape[2]))
 
 		# average over sampling  shape : [ print_num ]
 		Pjj_list_avg = np.mean(Pjj_list, 0)
 
+		# plot simulation result
 		plot_Pjj_fig(Pjj_list_avg, file_path)
+
+		# save simulation result data.
 		save_data(Pjj_list_avg, file_path)
 
 def plot_Pjj_fig(Pjj_list_avg , file_path):
