@@ -4,12 +4,6 @@
 '''
 from consts_rpmd import *
 
-# F is displacement of harmonic oscillator : Fx
-F = 0.1
-# frequency of nuclear motion
-omega = 1
-# coupling between electronic state.
-Delta = 1
 
 def delta_nm(n, m):
 	# simple delta function
@@ -22,17 +16,15 @@ def delta_nm(n, m):
 class nuclear_Potential:
 	# nuclear potential. Do not take free ring polymer potential $ M/(2 * beta_N^2 hbar^2) (R_alpha - R_(alpha + 1 ) )^2 $ into account
 
-	# displacement of oscillatory motion
-	R0 = F/( mass * pow(omega,2) )
 
 	def set_pot(self,Q , n, m):
 		V = 0
 		if(n==0 and m==0):
 			# Hamiltonian for electronic state 0
-			V = 1/2 * mass * np.power(omega,2) * np.power(Q , 2) + F * Q
+			V = 1/2 * mass * np.power(omega,2) * np.power(Q + R0 , 2)
 		elif (n==1 and m==1):
 			# Hamiltonian for electronic state 1
-			V = 1/2 * mass * np.power(omega,2) * np.power(Q  , 2) - F * Q
+			V = 1/2 * mass * np.power(omega,2) * np.power(Q - R0 , 2)
 		elif( (n==0 and m==1) or (n==1 and m==0) ):
 			V = Delta
 
@@ -40,9 +32,9 @@ class nuclear_Potential:
 	# We always try to get the analytic derivative of potential V(q) 
 	def set_force(self,Q , n, m):
 		if( n==0 and m==0 ):
-			Force = - mass * np.power(omega,2)* Q - F
+			Force = - mass * np.power(omega,2)* Q -  mass * pow(omega,2)  * R0
 		elif (n==1 and m==1 ):
-			Force = - mass * np.power(omega, 2) * Q + F
+			Force = - mass * np.power(omega, 2) * Q + mass * pow(omega,2)  * R0
 		else:
 			Force = 0
 

@@ -6,11 +6,10 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib
 
-from consts_rpmd import beta
-from potential import F,omega,Delta
+from consts_rpmd import beta , F,omega,Delta , R0
 from util import check_file_path_exist
 
-def shifted_harmonic_oscillator_in_one_electronic_state_eig(harmonic_basis_N, params , spin_state , neigs ):
+def shifted_harmonic_oscillator_in_one_electronic_state_eig(harmonic_basis_N, params , spin_state , neigs , R0 ):
     N = harmonic_basis_N
     Delta, F, omega = params
 
@@ -31,7 +30,7 @@ def shifted_harmonic_oscillator_in_one_electronic_state_eig(harmonic_basis_N, pa
         return
 
     for i in range(N -1 ):
-        H[ i, i+1 ] =  F * np.sqrt(1 / (2 * omega)) * np.sqrt(i + 1) * sign
+        H[ i, i+1 ] =  np.power(omega,2) * R0 * np.sqrt(1 / (2 * omega)) * np.sqrt(i + 1) * sign
         H[i+1 , i ] = H [i, i+1 ]
 
     H = H.tocsr()
@@ -80,7 +79,8 @@ def solve_eigenstate_shifted_harmonic_oscillator(harmonic_basis_N, spin_state, p
     :param eigenstate_num:  number of eigenstates to solve.
     :return:
     '''
-    evl , evt = shifted_harmonic_oscillator_in_one_electronic_state_eig(harmonic_basis_N , param, spin_state, eigenstate_num)
+
+    evl , evt = shifted_harmonic_oscillator_in_one_electronic_state_eig(harmonic_basis_N , param, spin_state, eigenstate_num , R0 )
     eigenstate_list = []
     for i in range(eigenstate_num):
         wave_func = np.zeros(2 * harmonic_basis_N)
@@ -230,11 +230,12 @@ def save_param(file_path):
     with open(param_file , "w") as f:
         f.write("beta: : " + str(beta) + "\n")
         f.write("[F , omega , Delta ] : " + str(F) + " , " + str(omega) + " , " + str(Delta) + "\n")
+        f.write("initial nuclear Hamiltonian displacement R0 = " + str(R0) + "\n")
 
 def solve_quantum_survival_probability():
     # solve survival probability of density matrix by resolving eigenstate spectrum of quantum system
 
-    file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/F=0.1 omega=1 Delta=1/beta=5/"
+    file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/Check_Huo_paper/"
 
     check_file_path_exist(file_path)
 
@@ -266,7 +267,7 @@ def solve_quantum_survival_probability():
     # <m|  |j><j| \otimes I |n>   Here |j><j| is electronic projection operator
     evt_proj_overlap = evt_overlap_projection_operator(evt, harmonic_basis_N, eval_spin_state)
 
-    final_time = 10
+    final_time = 30
     dt = 0.1
     time_num = int(final_time / dt)
     time = np.linspace(0,final_time, time_num )

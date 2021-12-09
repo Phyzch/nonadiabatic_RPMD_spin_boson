@@ -7,12 +7,23 @@ import numpy as np
 
 # parameters for the system
 #the inverse temperature 
-beta = 5 # a.u.
+beta = 16 # a.u.
 
 mass = 1.0
 
 # ------ params for propagation ------
 dt = 2 * pow(10,-3) # time step
+
+# F is displacement of harmonic oscillator : Fx
+F = 0.1 * np.sqrt(2)
+# frequency of nuclear motion
+omega = 1
+# coupling between electronic state.
+Delta = 0.5
+
+# displacement (1/2 M omega^2 (R + R0 * sigma_z )^2 ) in Hamiltonian H0 . initial state is sampled from e^{-\beta H0}
+R0 = 0 # displacement for initial Hamiltonian
+# R0 = F / ( mass * np.power(omega,2) )
 
 equil_dt = pow(10,-2) # time step for thermalization of initial state
 equil_time = 10
