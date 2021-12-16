@@ -147,6 +147,7 @@ def record_param(file_path):
 		f.write("thermal equilibrium dt: " + str(equil_dt) + "\n")
 		f.write("thermal equilibrium time:  " + str(equil_time) + "\n")
 		f.write("zero mode  thermalization time scale " + str(tau0) + "\n")
+		f.write("initial displacement R0: " + str(R0) + "\n" )
 		f.write("-------- simulation param ---------- \n")
 		f.write("simulation dt : " + str(dt) + "\n")
 		f.write("sampling number: " + str(n_samplings) + "\n")

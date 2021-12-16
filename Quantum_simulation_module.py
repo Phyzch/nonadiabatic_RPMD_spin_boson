@@ -235,7 +235,7 @@ def save_param(file_path):
 def solve_quantum_survival_probability():
     # solve survival probability of density matrix by resolving eigenstate spectrum of quantum system
 
-    file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/Check_Huo_paper/"
+    file_path = "/home/phyzch/Presentation/4 point correlation/Tunneling prob/RPMD/F=6 omega=1 Delta=1/beta=0.05/try/"
 
     check_file_path_exist(file_path)
 
